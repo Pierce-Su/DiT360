@@ -42,7 +42,8 @@ def main():
         '/mnt/NAS/E3DQA_project/curated_set/photorealistic/0106.jpg','--caption',
         'In the Cozy Living Room, a plush sofa sits invitingly beside a well-arranged coffee table adorned with flowers and books.',
         '--expected-sha256','a1b93c357a49bf25a42aaf592ebb2d327136bde845b38d2e6a8022ba98212c89',
-        '--hfov-deg','80','--seed','42','--output-dir',str(RUN),'--generate','--gpu-approved']
+        '--hfov-deg','80','--seed','42','--output-dir',str(RUN),'--generate','--gpu-approved',
+        '--model-files-manifest',str(WORK/'model-files.json')]
     (launch/'launch.json').write_text(json.dumps(dict(command=cmd,prelaunch_jobs=jobs,
         foreign_coordination=args.coordinated_with_foreign_jobs,free_vram_mib=free),indent=2))
     env=dict(os.environ,OMP_NUM_THREADS='4',MKL_NUM_THREADS='4',TOKENIZERS_PARALLELISM='false')

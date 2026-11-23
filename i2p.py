@@ -137,6 +137,8 @@ def main(argv=None):
     parser.add_argument('--image', required=True, type=Path)
     parser.add_argument('--caption', required=True)
     parser.add_argument('--expected-sha256')
+    parser.add_argument('--model-files-manifest', type=Path,
+                        help='Verified pinned asset SHA256 inventory from download script')
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument('--hfov-deg', type=float)
     group.add_argument('--K-json', type=Path, help='3x3 pinhole matrix for source dimensions')
@@ -148,6 +150,14 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if args.generate and not args.gpu_approved:
         parser.error('generation requires explicit --gpu-approved after coordination')
+    assets = None
+    if args.generate:
+        if args.model_files_manifest is None:
+            parser.error('generation requires --model-files-manifest with verified pinned assets')
+        assets = json.loads(args.model_files_manifest.read_text())
+        revisions = {(row['repo'], row['revision']) for row in assets.get('files', [])}
+        if assets.get('status') != 'VERIFIED' or revisions != {(BASE, BASE_REV), (LORA, LORA_REV)}:
+            parser.error('asset inventory status/revisions mismatch')
     if not args.caption.strip():
         parser.error('caption must not be empty')
     source_sha = sha(args.image)
@@ -192,6 +202,8 @@ def main(argv=None):
             license_note='Base FLUX dev non-commercial; LoRA MIT does not override base. QA-training permission NOT verified.')
         write_json(out/'preparation.json', manifest)
         if args.generate:
+            shutil.copyfile(args.model_files_manifest, out/'model-files.json')
+            manifest['model_files_manifest_sha256'] = sha(out/'model-files.json')
             image, stats = generate(canvas, known, PREFIX+args.caption, args.seed)
             if image.size != (2048, 1024):
                 raise ValueError('unexpected raw ERP size')
