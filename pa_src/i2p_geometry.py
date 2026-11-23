@@ -26,7 +26,7 @@ def validate(K, R):
 def rotation(yaw_deg=0, pitch_deg=0):
     """Positive yaw looks right; positive pitch looks up."""
     y, p = np.deg2rad([yaw_deg, pitch_deg])
-    return np.array([[np.cos(y), 0, np.sin(y)], [0, 1, 0], [-np.sin(y), 0, np.cos(y)]]) @ np.array([[1, 0, 0], [0, np.cos(p), np.sin(p)], [0, -np.sin(p), np.cos(p)]])
+    return np.array([[np.cos(y), 0, np.sin(y)], [0, 1, 0], [-np.sin(y), 0, np.cos(y)]]) @ np.array([[1, 0, 0], [0, np.cos(p), -np.sin(p)], [0, np.sin(p), np.cos(p)]])
 
 
 def bilinear(rgb, x, y, periodic=False):

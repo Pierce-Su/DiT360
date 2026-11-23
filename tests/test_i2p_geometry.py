@@ -66,6 +66,21 @@ class GeometryTests(unittest.TestCase):
         back = erp_to_perspective(canvas, self.K, rotation(0,90), (81,101))
         np.testing.assert_allclose(back[4:-4,4:-4], self.rgb[4:-4,4:-4], atol=1)
 
+    def test_pitch_absolute_axis_and_erp_hemisphere(self):
+        # Independent absolute oracle: image coordinates have +Y down.
+        np.testing.assert_allclose(rotation(0,90) @ [0,0,1], [0,-1,0], atol=1e-12)
+        np.testing.assert_allclose(rotation(0,-90) @ [0,0,1], [0,1,0], atol=1e-12)
+        erp = np.zeros((128,256,3), np.uint8)
+        erp[:64] = [255,0,0]  # north/top is red
+        erp[64:] = [0,0,255]  # south/bottom is blue
+        k = intrinsics(33,33,70)
+        for pitch, expected in [(90,[255,0,0]),(-90,[0,0,255])]:
+            view = erp_to_perspective(erp,k,rotation(0,pitch),(33,33))
+            np.testing.assert_array_equal(view[16,16],expected)
+        _, north = perspective_to_sparse_erp(self.rgb,self.K,rotation(0,90),(256,512))
+        self.assertTrue(north[:128].any())
+        self.assertFalse(north[128:].any())
+
     def test_mask_padding_flatten_crop(self):
         known = np.zeros((32,64), bool)
         known[:16,:16] = True
