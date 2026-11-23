@@ -433,6 +433,7 @@ class RFPanoInversionParallelFluxPipeline(
         width=None,
         resize_mode="default",
         crops_coords=None,
+        generator=None,
     ):
         image = self.image_processor.preprocess(
             image=image,
@@ -451,7 +452,7 @@ class RFPanoInversionParallelFluxPipeline(
             )
         image = image.to(dtype)
 
-        x0 = self.vae.encode(image.to(self.device)).latent_dist.sample()
+        x0 = self.vae.encode(image.to(self.device)).latent_dist.sample(generator=generator)
         x0 = (x0 - self.vae.config.shift_factor) * self.vae.config.scaling_factor
         x0 = x0.to(dtype)
         return x0, resized
@@ -761,7 +762,8 @@ class RFPanoInversionParallelFluxPipeline(
         max_sequence_length: int = 512,
         ###################################
         mask = None,
-        use_timestep = False
+        use_timestep = False,
+        t_l: float = 0.5,
     ):
         r"""
         Function invoked when calling the pipeline for generation.
@@ -845,6 +847,8 @@ class RFPanoInversionParallelFluxPipeline(
         height = height or self.default_sample_size * self.vae_scale_factor
         width = width or self.default_sample_size * self.vae_scale_factor
 
+        if not 0 <= t_l <= 1:
+            raise ValueError("t_l must be in [0,1]")
         # 1. Check inputs. Raise error if not correct
         self.check_inputs(
             prompt,
@@ -1050,7 +1054,7 @@ class RFPanoInversionParallelFluxPipeline(
 
                 ############################################
                 # enhance image consistency
-                t_l = 0.5   # smaller values enforce stronger consistency but may cause visual discontinuities
+                # Keep native >= transfer gate, separate from processor's > tau gate.
                 if mask is not None and timestep[1].item() / 1000 >= t_l:
                     mask = mask.to(device)
                     latents[1] = latents[1] * (1.0-mask) + latents[0] * mask
@@ -1160,7 +1164,7 @@ class RFPanoInversionParallelFluxPipeline(
 
         # 1. prepare image
         image_latents, _ = self.encode_image(
-            image, height=height, width=width, dtype=dtype
+            image, height=height, width=width, dtype=dtype, generator=generator
         )
         image_latents, latent_image_ids = self.prepare_latents_inversion(
             batch_size,
