@@ -14,7 +14,7 @@ import time
 
 REPO=Path('/mnt/NAS/E3DQA_project/tools/DiT360')
 WORK=Path('/mnt/NAS/pierce/.workstation/S3063/dit360-t_db92abb3')
-RUN=Path('/mnt/NAS/E3DQA_project/assets/panoramas/dit360/first-sample-t_db92abb3')
+RUN=Path('/mnt/NAS/E3DQA_project/panoramas/dit360/first-sample-t_db92abb3')
 
 def query(fields,kind='gpu'):
     result=subprocess.check_output(['nvidia-smi','--query-'+kind+'='+fields,'--format=csv,noheader,nounits'],text=True)
@@ -28,9 +28,8 @@ def main():
     if RUN.exists(): raise SystemExit('Refusing existing output directory: '+str(RUN))
     if not (WORK/'DOWNLOAD_DONE').exists(): raise SystemExit('Pinned verified asset download not finished')
     jobs=query('pid,used_memory','compute-apps')
-    foreign=[]
-    for pid,mem in jobs:
-        if Path('/proc/'+pid).stat().st_uid != os.getuid(): foreign.append((pid,mem))
+    # Another job remains foreign to this run even if it shares our Unix UID.
+    foreign=jobs
     if foreign and not args.coordinated_with_foreign_jobs:
         raise SystemExit('WAITING_FOR_GPU_COORDINATION foreign jobs='+json.dumps(foreign))
     # Explicit minimum headroom; does not certify other jobs future needs.
